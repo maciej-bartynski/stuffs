@@ -6,6 +6,7 @@ const constructTask = (taskFrom: TaskForm): TaskType => {
         id: createUuid<TaskUuid>(),
         createdAt: new Date().getTime(),
         updatedAt: null,
+        importance: 0,
         ...taskFrom,
     })
 

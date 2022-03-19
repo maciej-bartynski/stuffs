@@ -1,33 +1,56 @@
 import Button from 'atomic/atoms/Button';
-import styled, { StyledComponent } from 'styled-components';
+import ToggleableFormStylesheet from 'atomic/molecules/ToggleableForm/ToggleableForm.stylesheet';
+import styled from 'styled-components';
 
-const AddTaskFormWrapper = styled.div`
-    border-radius: ${(props): number => props.theme.radius.base}px;
-    padding: 10px;
-    background: ${(props): string => props.theme.baseTheme.background.lightPrimary};
-    width: 222px;
-    display: inline-block;
-`
+const AddTaskFormButton = styled(Button)``
 
-const AddTaskFormButton = styled(Button)`
-    margin-bottom: 10px;
-`
+const ToggleableFormAtoms = {
+    ...ToggleableFormStylesheet,
+    ToggleableFormWrapper: styled(ToggleableFormStylesheet.ToggleableFormWrapper)`
+        ${(props): string => {
+            if (props.clicked) {
+                return `
+                    box-shadow: ${props.theme.shadow.light};
+                    position: relative;
+                    bottom: -20px;
+                    margin: 0 auto;
+                    border-radius: ${props.theme.radius.base}px;
+                    padding: 0;
+                    background: white;
+                    padding: 10px;
+                    z-index: 1;
+                `
+            }
 
-const MainLabel = styled.div`
-    font-size: ${(props): number => props.theme.fontSize.label.fontSize}px;
-    line-height: ${(props): number => props.theme.fontSize.label.lineHeight}px;
-    color: ${(props): string => props.theme.baseTheme.color.secondaryText};
-`;
-export type AddTaskFormStylesheetType = {
-    AddTaskFormWrapper: StyledComponent<"div", any, {}, never>;
-    AddTaskFormButton: typeof AddTaskFormButton;
-    MainLabel: StyledComponent<"div", any, {}, never>;
+            return `
+                height: 40px;
+                width: 100px;
+                border-radius: 50px;
+                background: ${props.theme.baseTheme.background.lightPrimary};
+                border: solid 2px white;
+                position: relative;
+                top: 20px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto;
+            `
+        }}
+    `,
 }
 
-const AddTaskFormStylesheet: AddTaskFormStylesheetType = {
-    AddTaskFormWrapper,
+const AddTaskFormStylesheet = {
     AddTaskFormButton,
-    MainLabel
 }
 
-export default AddTaskFormStylesheet;
+const stylesheet = {
+    AddTaskFormStylesheet,
+    ToggleableFormAtoms
+}
+
+type AddTaskFormStylesheetType = typeof AddTaskFormStylesheet
+
+export default stylesheet;
+export type {
+    AddTaskFormStylesheetType
+}

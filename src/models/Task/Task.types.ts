@@ -17,6 +17,7 @@ export interface TaskType extends TaskForm {
     readonly id: TaskUuid;
     readonly createdAt: number;
     readonly updatedAt: number | null;
+    readonly importance: number;
 };
 
 export interface TaskFormValidators {

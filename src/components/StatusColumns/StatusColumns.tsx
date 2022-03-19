@@ -1,161 +1,151 @@
 import AddStatusForm from "components/AddStatusForm";
 import useStatusesStore from "store/statusesStore/useStatusesStore";
-import StatusColumnStylesheet, { StatusColumnStylesheetType } from "./StatusColumns.stylesheet";
+import StatusColumnsAtoms, { StatusColumnsAtomsType } from "./StatusColumns.atoms";
 import useTasksStore from 'store/tasksStore/useTasksStore';
-import { useCallback, useMemo, useState } from "react";
-import { StatusUuid } from "models/Status/Status.types";
-import Card from "atomic/atoms/Card";
-import { StatusColumnsContextProvider } from "./StatusColumns.context";
-import Column from "./Column";
-import { getTranslateValue, swipeStatuses, useCalculateTrackHeight } from "./lib";
+import React, { MutableRefObject, useCallback, useMemo, useRef, useState } from "react";
+import context from "./context";
+import DraggableTable from "atomic/molecules/DraggableTable";
+import { TaskType } from "models/Task/Task.types";
+import { StatusType } from "models/Status/Status.types";
+import StatusItem from "./StatusItem";
+import TaskItem from "./TaskItem";
+import { ANIMATION_FRAME_DURATION, TRANSITION_TIME_BASE } from "consts/variables";
 
 type StatusColumnsProps = {
-    Atoms?: StatusColumnStylesheetType
+    Atoms?: StatusColumnsAtomsType,
 }
-const StatusColumns: React.FC<StatusColumnsProps> = ({
-    Atoms = StatusColumnStylesheet
-}) => {
 
-    const trackRef = useCalculateTrackHeight();
+const StatusColumns: React.FC<StatusColumnsProps> = ({
+    Atoms = StatusColumnsAtoms,
+}) => {
+    const [mouseOverStatus, _setMouseOverStatus] = useState<string>();
+    const [pickedStatus, setPickedStatus] = useState<StatusType["id"]["__identifier"]>();
+    const [pickedTask, setPickedTask] = useState<TaskType["id"]["__identifier"]>();
+    const [blockOperations, setBlockOperations] = useState<boolean>(false);
 
     const {
         statuses,
-        deleteStatus,
-        setAllStatuses
+        reorderStatuses
     } = useStatusesStore();
 
-    const [focusedColumn, setFocusedColumn] = useState<StatusUuid | null>(null);
-    const [lockedColumn, setLockedColumn] = useState<StatusUuid | null>(null);
-    const [dropZone, setDropZone] = useState<StatusUuid | null>(null);
+    const { tasks } = useTasksStore();
 
-    const pickColumn = useCallback((statusUuid: StatusUuid) => {
-        setLockedColumn(statusUuid);
-    }, [setLockedColumn]);
+    const stateChangesAllowed = !blockOperations;
 
-    const shuffleColumns = useCallback((dropZone: null | StatusUuid) => {
-        if (lockedColumn && dropZone && statuses.length) {
-            const swipedStatuses = swipeStatuses(lockedColumn, dropZone, statuses);
-            setAllStatuses(swipedStatuses);
+    const throttlingTimer: MutableRefObject<NodeJS.Timeout | undefined> = useRef();
+    const allowStateChanges = useCallback(() => {
+        function allowStateChangesOnAnimationEnd() {
+            throttlingTimer.current && clearTimeout(throttlingTimer.current)
+            return setTimeout(() => {
+                setBlockOperations(false);
+            }, TRANSITION_TIME_BASE + ANIMATION_FRAME_DURATION);
         }
-    }, [lockedColumn, statuses, setAllStatuses])
+        throttlingTimer.current = allowStateChangesOnAnimationEnd();
+    }, [setBlockOperations]);
 
-    const dropColumn = useCallback(() => {
-        shuffleColumns(dropZone)
-        setLockedColumn(null);
-        setDropZone(null);
-    }, [shuffleColumns, dropZone]);
+    const disallowStateChanges = useCallback(() => {
+        setBlockOperations(true);
+    }, [setBlockOperations]);
 
+    const pickTask = useCallback((param: { selector?: string }) => {
+        setPickedTask(param.selector);
+    }, [setPickedTask]);
 
-    const moveOverDropZone = useCallback((statusUuid: StatusUuid) => {
-        setDropZone(statusUuid);
-        shuffleColumns(statusUuid);
-    }, [shuffleColumns])
+    const dropTask = useCallback(() => {
+        setPickedTask(undefined);
+    }, [setPickedTask]);
 
-    const { tasks, updateTask } = useTasksStore();
+    const pickStatus = useCallback((param: { selector?: string }) => {
+        setPickedStatus(param.selector);
+    }, [setPickedStatus]);
 
-    const removeStatus = useCallback((statusUuid: StatusUuid) => {
-        tasks.forEach(task => {
-            if (task.status?.__identifier === statusUuid.__identifier) {
-                updateTask({
-                    ...task,
-                    status: undefined
-                })
-            }
-        });
+    const dropStatus = useCallback(() => {
+        setPickedStatus(undefined);
+    }, [setPickedStatus]);
 
-        deleteStatus(statusUuid);
-    }, [tasks, updateTask, deleteStatus])
+    const setMouseOverStatus = useCallback((selector?: string) => {
+        _setMouseOverStatus(selector);
+        if (pickedStatus && stateChangesAllowed) {
+            disallowStateChanges();
+            reorderStatuses({
+                pickedId: { __identifier: pickedStatus! },
+                dropId: { __identifier: selector! }
+            });
+            allowStateChanges();
+        }
+    }, [disallowStateChanges, pickedStatus, reorderStatuses, allowStateChanges, stateChangesAllowed]);
+
+    const onStatusOrderChange = useCallback((): void => {
+
+    }, [
+
+    ]);
+
+    const contextValue = useMemo(() => ({
+        pickedTask,
+        pickedStatus,
+        blockOperations, setBlockOperations,
+        mouseOverStatus, setMouseOverStatus,
+        onStatusOrderChange
+    }), [
+        pickedTask,
+        pickedStatus,
+        blockOperations, setBlockOperations,
+        mouseOverStatus, setMouseOverStatus,
+        onStatusOrderChange
+    ]);
+
+    const pickedTaskData = pickedTask ? tasks.find(task => task.id.__identifier === pickedTask) : null;
+    const pickedTaskOriginStatus = pickedTaskData?.status?.__identifier || null;
+
+    const tableItems = useMemo(() => {
+
+        return {
+            selector: "nested-list",
+            parentList: undefined,
+            childListHorizontal: true,
+            childListDisableTransverseDragging: true,
+            childListItemSpace: 250,
+            childListGapSpace: 20,
+            ChildListItemComponent: StatusItem,
+            childListOnPick: pickStatus,
+            childListOnDrop: dropStatus,
+            childListItems: statuses.map(status => {
+                return {
+                    selector: status.id.__identifier,
+                    parentList: "nested-list",
+                    childListHorizontal: false,
+                    childListDisableTransverseDragging: false,
+                    childListItemSpace: 150,
+                    childListGapSpace: 10,
+                    ChildListItemComponent: TaskItem,
+                    childListOnPick: pickTask,
+                    childListOnDrop: dropTask,
+                    dropZoneMode: !!pickedTaskOriginStatus && status.id.__identifier !== pickedTaskOriginStatus,
+                    childListItems: tasks.map(task => {
+                        const toReturn = task.status?.__identifier === status.id.__identifier ? {
+                            selector: task.id.__identifier,
+                            parentList: status.id.__identifier,
+                        } : null;
+                        return toReturn!
+                    }).filter(item => item)
+                }
+            })
+        }
+    }, [statuses, tasks, pickTask, dropTask, pickStatus, dropStatus, pickedTaskOriginStatus]);
+
 
     return (
-        <StatusColumnsContextProvider
-            value={useMemo(() => ({
-                statuses,
-                removeStatus,
-
-                lockedColumn,
-                pickColumn,
-                dropColumn,
-                shuffleColumns,
-
-                dropZone,
-                setDropZone,
-                moveOverDropZone,
-
-                focusedColumn,
-                setFocusedColumn
-            }), [
-                statuses,
-                removeStatus,
-                lockedColumn,
-                pickColumn,
-                dropColumn,
-                dropZone,
-                setDropZone,
-                moveOverDropZone,
-                shuffleColumns,
-                focusedColumn,
-                setFocusedColumn
-            ])}
-        >
-            <Atoms.Wrapper>
-                <Atoms.Track ref={trackRef}>
-                    {statuses.map((status, columnRenderOrder) => (
-                        <Column
-                            renderOrder={columnRenderOrder}
-                            status={status}
-                            key={status.id.__identifier}
-                        >
-                            {tasks.map((task) => {
-                                if (task.status?.__identifier === status.id.__identifier) {
-                                    return (
-                                        <StatusColumnStylesheet.ColumnCard
-                                            key={task.id.__identifier}
-                                        >
-                                            <Card.Tile>
-                                                <Card.CardLabel>
-                                                    Created: {task.createdAt}
-                                                </Card.CardLabel>
-                                                <Card.CardTitle>
-                                                    {task.name}
-                                                </Card.CardTitle>
-                                            </Card.Tile>
-                                        </StatusColumnStylesheet.ColumnCard>
-                                    )
-                                }
-                                return null;
-                            })}
-                        </Column>
-                    ))}
-                    <StatusColumnStylesheet.AddStatusWrapper 
-                        translateX={getTranslateValue(statuses.length)}
-                    >
-                        <AddStatusForm />
-                    </StatusColumnStylesheet.AddStatusWrapper>
-                </Atoms.Track>
-            </Atoms.Wrapper>
-
-            <div>
-                <div>Backlog: </div>
-                {tasks.map(task => {
-                    if (!task.status) {
-                        return (
-                            <StatusColumnStylesheet.ColumnCard key={task.id.__identifier}>
-                                <Card.Tile>
-                                    <Card.CardLabel>
-                                        Created: {task.createdAt}
-                                    </Card.CardLabel>
-                                    <Card.CardTitle>
-                                        {task.name}
-                                    </Card.CardTitle>
-                                </Card.Tile>
-                            </StatusColumnStylesheet.ColumnCard>
-                        )
-                    }
-
-                    return null;
-                })}
-            </div>
-        </StatusColumnsContextProvider>
+        <div>
+            <div>Board new</div>
+            <context.StatusColumnContextProvider value={contextValue}>
+                <Atoms.Positioner>
+                    <DraggableTable
+                        {...tableItems}
+                    />
+                </Atoms.Positioner>
+            </context.StatusColumnContextProvider>
+        </div>
     )
 }
 

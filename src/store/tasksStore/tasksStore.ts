@@ -12,6 +12,7 @@ export const tasksSlice = createSlice({
         createTask: tasksAdapter.addOne,
         deleteTask: tasksAdapter.removeOne,
         updateTask: tasksAdapter.setOne,
+        setAllTasks: tasksAdapter.setAll
     },
 });
 

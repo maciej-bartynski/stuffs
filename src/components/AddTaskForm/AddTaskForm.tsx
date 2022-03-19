@@ -1,17 +1,20 @@
 import Input from "atomic/atoms/Input";
 import ToggleableForm from "atomic/molecules/ToggleableForm";
+import { ToggleableFormStylesheetType } from "atomic/molecules/ToggleableForm/ToggleableForm.stylesheet";
 import useTaskForm from "hooks/useTaskForm";
 import { StatusUuid } from "models/Status/Status.types";
 import { useEffect, useRef } from "react";
-import AddTaskFormStylesheet, { AddTaskFormStylesheetType } from "./AddTaskForm.stylesheet";
+import stylesheet, { AddTaskFormStylesheetType } from "./AddTaskForm.stylesheet";
 
 type Props = {
     Atoms?: AddTaskFormStylesheetType,
     status: StatusUuid,
+    ToggleableFormAtoms?: ToggleableFormStylesheetType
 }
 
 const AddTaskForm: React.FC<Props> = ({
-    Atoms = AddTaskFormStylesheet,
+    Atoms = stylesheet.AddTaskFormStylesheet,
+    ToggleableFormAtoms = stylesheet.ToggleableFormAtoms,
     status,
 }) => {
     const {
@@ -34,6 +37,7 @@ const AddTaskForm: React.FC<Props> = ({
             submit={submit}
             label="+ Add task"
             valid={valid}
+            Atoms={ToggleableFormAtoms}
         >
             <>
                 <Input

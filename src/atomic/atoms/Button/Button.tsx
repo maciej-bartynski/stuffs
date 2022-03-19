@@ -6,12 +6,14 @@ export type ButtonProps = {
     label: string,
     type: 'submit' | 'button',
     onClick?: MouseEventHandler<HTMLButtonElement>;
+    className?: string;
 }
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
-    label, type, Atoms = ButtonStylesheet, onClick, ...rest
+    label, type, Atoms = ButtonStylesheet, onClick, className, ...rest
 }, ref) => (
     <Atoms.Button
+        className={className}
         onClick={onClick}
         type={type}
         {...rest}

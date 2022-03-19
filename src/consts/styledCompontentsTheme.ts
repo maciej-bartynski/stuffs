@@ -34,7 +34,10 @@ const baseTheme = {
 const STYLED_COMPONENTS_THEME = {
     baseTheme,
     shadow: {
-        base: "0px 0px 5px 0px rgba(0, 0, 0, 0.5)"
+        base: "0px 0px 5px 0px rgba(0, 0, 0, 0.5)",
+        dark:  "0px 0px 30px 0px rgba(0,0,0,0.2)",
+        main: "0px 0px 20px 0px rgba(0,0,0,0.1)",
+        light: "0px 0px 10px 0px rgba(0,0,0,0.1)",
     },
     radius: {
         base: 5,
@@ -61,7 +64,7 @@ const STYLED_COMPONENTS_THEME = {
             fontSize: 14,
             lineHeight: 28,
         }
-    }
+    },
 }
 
 export default STYLED_COMPONENTS_THEME;

@@ -24,11 +24,11 @@ const ToggleableForm: React.FC<Props> = ({
     const buttonRef = useRef<HTMLDivElement>(null);
 
     const onFormClick: MouseEventHandler<HTMLElement> = useCallback((e) => {
-        const { target } = e;
-        const isSubmitClicked = submitRef.current === target || submitRef.current?.contains(target as Node);
-
         e.stopPropagation();
         e.preventDefault();
+
+        const { target } = e;
+        const isSubmitClicked = submitRef.current === target || submitRef.current?.contains(target as Node);
 
         if (isSubmitClicked && valid) {
             submit();
@@ -63,12 +63,19 @@ const ToggleableForm: React.FC<Props> = ({
 
     useOutsideClickHandler(() => setClicked(false), buttonRef.current);
 
+    const stopPropagation = (e: any) => {
+        e.stopPropagation();
+        e.preventDefault();
+    }
     return (
         <Atoms.ToggleableFormWrapper
             ref={buttonRef}
             onClick={onFormClick}
+            onMouseDown={stopPropagation}
+            onMouseUp={stopPropagation}
             tabIndex={0}
             onKeyPress={onFormPressEnter}
+            clicked={clicked}
         >
             {clicked
                 ? children
